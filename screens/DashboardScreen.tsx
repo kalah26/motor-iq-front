@@ -1,22 +1,270 @@
 import React from 'react';
-import { View, Text, Button } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+} from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../types';
+import useClaimsStore from '../stores/claimsStore';
+import PolicyCard from '../components/PolicyCard';
+import ClaimCard from '../components/ClaimCard';
+import TimelineProgress from '../components/TimelineProgress';
 
 type DashboardScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Dashboard'>;
 
 export default function DashboardScreen() {
   const navigation = useNavigation<DashboardScreenNavigationProp>();
+  const profile = useClaimsStore((state) => state.profile);
+  const claims = useClaimsStore((state) => state.claims);
+  const [selectedClaim, setSelectedClaim] = React.useState<
+    ReturnType<typeof useClaimsStore>['claims'][number] | null
+  >(null);
 
   return (
-    <View style={{ padding: 20 }}>
-      <Text>Dashboard</Text>
-      <Text>Policy Overview</Text>
-      <Text>Claim Status</Text>
-      <Button title="Report Accident" onPress={() => navigation.navigate('ReportAccident')} />
-      <Button title="Claims Tracking" onPress={() => navigation.navigate('ClaimsTracking')} />
-      <Button title="Profile" onPress={() => navigation.navigate('Profile')} />
+    <View style={styles.container}>
+      <ScrollView contentContainerStyle={styles.scroll}>
+        <View style={styles.header}>
+          <View>
+            <Text style={styles.appName}>MotorIQ</Text>
+            <Text style={styles.welcomeText}>Welcome back</Text>
+          </View>
+          <View style={styles.avatar} />
+        </View>
+
+        <TouchableOpacity
+          style={styles.primaryButton}
+          onPress={() => navigation.navigate('ReportAccident')}
+        >
+          <Text style={styles.primaryButtonText}>Report an Incident</Text>
+        </TouchableOpacity>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Active Policy</Text>
+          <PolicyCard policy={profile.policy} />
+          <TouchableOpacity
+            style={styles.upgradeBanner}
+            activeOpacity={0.9}
+            onPress={() => navigation.navigate('UpgradeInsurance')}
+          >
+            <Text style={styles.upgradeTitle}>Upgrade your coverage</Text>
+            <Text style={styles.upgradeSubtitle}>
+              Get enhanced protection, roadside assistance and faster claim processing.
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.section}>
+          <View style={styles.sectionHeaderRow}>
+            <Text style={styles.sectionTitle}>Recent Claims</Text>
+            <Text style={styles.linkText}>History</Text>
+          </View>
+          {claims.slice(0, 3).map((claim) => (
+            <ClaimCard
+              key={claim.id}
+              claim={claim}
+              onPress={() => setSelectedClaim(claim)}
+            />
+          ))}
+        </View>
+      </ScrollView>
+
+      {selectedClaim && (
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalCard}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>{selectedClaim.description}</Text>
+              <TouchableOpacity onPress={() => setSelectedClaim(null)}>
+                <Text style={styles.closeText}>Close</Text>
+              </TouchableOpacity>
+            </View>
+            <Text style={styles.modalMeta}>
+              {selectedClaim.claimId} • {selectedClaim.vehicleName}
+            </Text>
+            <Text style={styles.modalMeta}>
+              Submitted {selectedClaim.submissionDate}
+            </Text>
+            <Text style={[styles.modalMeta, { marginTop: 8 }]}>
+              Status: {selectedClaim.status}
+            </Text>
+            <View style={{ marginTop: 16 }}>
+              <Text style={styles.timelineTitle}>Claim progress</Text>
+              <TimelineProgress steps={selectedClaim.timeline} />
+            </View>
+          </View>
+        </View>
+      )}
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#F7F9FC',
+  },
+  scroll: {
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 24,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  appName: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#0B1020',
+  },
+  welcomeText: {
+    fontSize: 14,
+    color: '#8F9BB3',
+    marginTop: 4,
+  },
+  avatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#EDF1F7',
+  },
+  primaryButton: {
+    backgroundColor: '#111827',
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  primaryButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  section: {
+    marginBottom: 24,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1F2937',
+    marginBottom: 12,
+  },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  linkText: {
+    fontSize: 13,
+    color: '#4B5563',
+  },
+  claimCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 10,
+  },
+  claimLeft: {
+    marginRight: 12,
+  },
+  claimIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: '#EEF2FF',
+  },
+  claimMiddle: {
+    flex: 1,
+  },
+  claimTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#111827',
+  },
+  claimSubtitle: {
+    fontSize: 12,
+    color: '#6B7280',
+    marginTop: 2,
+  },
+  claimStatus: {
+    fontSize: 12,
+    fontWeight: '600',
+    marginTop: 4,
+  },
+  claimRight: {
+    marginLeft: 8,
+  },
+  claimDate: {
+    fontSize: 12,
+    color: '#9CA3AF',
+  },
+  upgradeBanner: {
+    marginTop: 16,
+    backgroundColor: '#EEF2FF',
+    borderRadius: 12,
+    padding: 14,
+  },
+  upgradeTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#111827',
+    marginBottom: 4,
+  },
+  upgradeSubtitle: {
+    fontSize: 12,
+    color: '#4B5563',
+  },
+  modalBackdrop: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(15, 23, 42, 0.4)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+  },
+  modalCard: {
+    width: '100%',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 16,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  modalTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#111827',
+    flex: 1,
+    marginRight: 8,
+  },
+  closeText: {
+    fontSize: 13,
+    color: '#2563EB',
+  },
+  modalMeta: {
+    fontSize: 12,
+    color: '#6B7280',
+    marginTop: 2,
+  },
+  timelineTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#111827',
+    marginBottom: 8,
+  },
+});

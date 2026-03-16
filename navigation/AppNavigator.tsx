@@ -1,28 +1,80 @@
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import Ionicons from '@expo/vector-icons/Ionicons';
 
-import { RootStackParamList } from '../types';
-import LoginScreen from '../screens/LoginScreen';
-import SignupScreen from '../screens/SignupScreen';
 import DashboardScreen from '../screens/DashboardScreen';
 import ReportAccidentScreen from '../screens/ReportAccidentScreen';
 import ClaimsTrackingScreen from '../screens/ClaimsTrackingScreen';
 import ProfileScreen from '../screens/ProfileScreen';
+import UpgradeInsuranceScreen from '../screens/UpgradeInsuranceScreen';
 
-const Stack = createStackNavigator<RootStackParamList>();
+const HomeStack = createStackNavigator();
+const ClaimsStack = createStackNavigator();
+const ProfileStack = createStackNavigator();
+const Tab = createBottomTabNavigator();
+
+function HomeStackScreen() {
+  return (
+    <HomeStack.Navigator screenOptions={{ headerShown: false }}>
+      <HomeStack.Screen name="Dashboard" component={DashboardScreen} />
+      <HomeStack.Screen name="ReportAccident" component={ReportAccidentScreen} />
+      <HomeStack.Screen name="UpgradeInsurance" component={UpgradeInsuranceScreen} />
+    </HomeStack.Navigator>
+  );
+}
+
+function ClaimsStackScreen() {
+  return (
+    <ClaimsStack.Navigator screenOptions={{ headerShown: false }}>
+      <ClaimsStack.Screen name="ClaimsTracking" component={ClaimsTrackingScreen} />
+    </ClaimsStack.Navigator>
+  );
+}
+
+function ProfileStackScreen() {
+  return (
+    <ProfileStack.Navigator screenOptions={{ headerShown: false }}>
+      <ProfileStack.Screen name="Profile" component={ProfileScreen} />
+      <ProfileStack.Screen name="UpgradeInsurance" component={UpgradeInsuranceScreen} />
+    </ProfileStack.Navigator>
+  );
+}
 
 export default function AppNavigator() {
   return (
     <NavigationContainer>
-      <Stack.Navigator initialRouteName="Login">
-        <Stack.Screen name="Login" component={LoginScreen} />
-        <Stack.Screen name="Signup" component={SignupScreen} />
-        <Stack.Screen name="Dashboard" component={DashboardScreen} />
-        <Stack.Screen name="ReportAccident" component={ReportAccidentScreen} />
-        <Stack.Screen name="ClaimsTracking" component={ClaimsTrackingScreen} />
-        <Stack.Screen name="Profile" component={ProfileScreen} />
-      </Stack.Navigator>
+      <Tab.Navigator
+        screenOptions={({ route }) => ({
+          headerShown: false,
+          tabBarActiveTintColor: '#0B1020',
+          tabBarInactiveTintColor: '#8F9BB3',
+          tabBarStyle: {
+            backgroundColor: '#FFFFFF',
+            borderTopColor: '#E4E9F2',
+            height: 70,
+            paddingBottom: 10,
+          },
+          tabBarIcon: ({ color, size }) => {
+            let iconName: keyof typeof Ionicons.glyphMap = 'home';
+
+            if (route.name === 'Home') {
+              iconName = 'home';
+            } else if (route.name === 'Claims') {
+              iconName = 'file-tray-full-outline';
+            } else if (route.name === 'Profile') {
+              iconName = 'person-circle-outline';
+            }
+
+            return <Ionicons name={iconName} size={size} color={color} />;
+          },
+        })}
+      >
+        <Tab.Screen name="Home" component={HomeStackScreen} />
+        <Tab.Screen name="Claims" component={ClaimsStackScreen} />
+        <Tab.Screen name="Profile" component={ProfileStackScreen} />
+      </Tab.Navigator>
     </NavigationContainer>
   );
 }
