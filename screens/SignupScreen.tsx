@@ -1,0 +1,33 @@
+import React, { useState } from 'react';
+import { View, Text, TextInput, Button, Alert } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import api from '../services/api';
+
+export default function SignupScreen() {
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
+  const [password, setPassword] = useState('');
+  const navigation = useNavigation();
+
+  const handleSignup = async () => {
+    try {
+      await api.post('/auth/register', { name, email, phone, password });
+      Alert.alert('Success', 'Account created');
+      navigation.navigate('Login');
+    } catch (error) {
+      Alert.alert('Error', 'Registration failed');
+    }
+  };
+
+  return (
+    <View style={{ padding: 20 }}>
+      <Text>Signup</Text>
+      <TextInput placeholder="Name" value={name} onChangeText={setName} />
+      <TextInput placeholder="Email" value={email} onChangeText={setEmail} />
+      <TextInput placeholder="Phone" value={phone} onChangeText={setPhone} />
+      <TextInput placeholder="Password" value={password} onChangeText={setPassword} secureTextEntry />
+      <Button title="Signup" onPress={handleSignup} />
+    </View>
+  );
+}
