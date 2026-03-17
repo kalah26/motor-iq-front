@@ -22,6 +22,7 @@ export interface DriverProfile {
   phone: string;
   vehicles: Vehicle[];
   policy: PolicySummary;
+  avatarInitials?: string;
 }
 
 export interface ExtendedClaim extends Claim {
@@ -39,13 +40,15 @@ interface ClaimsState {
   addClaim: (claim: Omit<ExtendedClaim, 'id' | 'claimId' | 'timeline'>) => void;
   updateProfile: (partial: Partial<DriverProfile>) => void;
   addVehicle: (vehicle: Omit<Vehicle, 'id'>) => Vehicle;
+  theme: 'light' | 'dark';
+  toggleTheme: () => void;
 }
 
 let nextId = 3;
 
 const useClaimsStore = create<ClaimsState>((set, get) => ({
   profile: {
-    name: 'Alex Johnson',
+    name: 'Amira Mensah',
     phone: '+233 555 123 456',
     vehicles: [
       {
@@ -70,6 +73,7 @@ const useClaimsStore = create<ClaimsState>((set, get) => ({
       coverageLimit: '$50,000',
       renewalDate: 'Dec 12, 2026',
     },
+    avatarInitials: 'AM',
   },
   claims: [
     {
@@ -152,6 +156,11 @@ const useClaimsStore = create<ClaimsState>((set, get) => ({
         },
       };
     }),
+  theme: 'light',
+  toggleTheme: () =>
+    set((state) => ({
+      theme: state.theme === 'light' ? 'dark' : 'light',
+    })),
 }));
 
 export default useClaimsStore;

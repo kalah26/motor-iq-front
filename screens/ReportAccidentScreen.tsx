@@ -16,7 +16,7 @@ import useClaimsStore from '../stores/claimsStore';
 
 type NavProp = StackNavigationProp<RootStackParamList, 'ReportAccident'>;
 
-type Step = 1 | 2 | 3 | 4 | 5;
+type Step = 1 | 2 | 3 | 4 | 5 | 6;
 
 export default function ReportAccidentScreen() {
   const navigation = useNavigation<NavProp>();
@@ -39,9 +39,13 @@ export default function ReportAccidentScreen() {
   const [newVehicleModel, setNewVehicleModel] = useState('');
   const [newVehiclePlate, setNewVehiclePlate] = useState('');
   const [isAddingVehicle, setIsAddingVehicle] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [hasVoiceNote, setHasVoiceNote] = useState(false);
+  const [hasPoliceReport, setHasPoliceReport] = useState(false);
+  const [acceptedDeclaration, setAcceptedDeclaration] = useState(false);
 
   const goNext = () => {
-    if (step < 5) {
+    if (step < 6) {
       setStep((s) => (s + 1) as Step);
     } else {
       handleSubmit();
@@ -57,8 +61,11 @@ export default function ReportAccidentScreen() {
   };
 
   const pickImage = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+    const permission = await ImagePicker.requestCameraPermissionsAsync();
+    if (!permission.granted) {
+      return;
+    }
+    const result = await ImagePicker.launchCameraAsync({
       quality: 0.7,
     });
     if (!result.canceled && result.assets?.length) {
@@ -67,6 +74,9 @@ export default function ReportAccidentScreen() {
   };
 
   const handleSubmit = () => {
+    if (!acceptedDeclaration) {
+      return;
+    }
     const vehicle = vehicles.find((v) => v.id === selectedVehicleId);
     addClaim({
       description,
@@ -75,7 +85,6 @@ export default function ReportAccidentScreen() {
       fraud_risk_score: 0,
       vehicleName: vehicle ? `${vehicle.make} ${vehicle.model}` : 'Unknown vehicle',
       submissionDate: date,
-      images,
     });
     navigation.navigate('ClaimsTracking');
   };
@@ -83,7 +92,7 @@ export default function ReportAccidentScreen() {
   const renderStepIndicator = () => (
     <View style={styles.stepHeader}>
       <Text style={styles.stepTitle}>Filling Incident</Text>
-      <Text style={styles.stepSubtitle}>Step {step} of 5</Text>
+      <Text style={styles.stepSubtitle}>Step {step} of 6</Text>
     </View>
   );
 
@@ -243,18 +252,19 @@ export default function ReportAccidentScreen() {
     if (step === 3) {
       return (
         <View>
-          <Text style={styles.sectionTitle}>Upload evidence</Text>
+          <Text style={styles.sectionTitle}>Photo capture</Text>
           <Text style={styles.sectionSubtitle}>
-            Add photos and describe the visible damage.
+            Take a clear photo of the damaged area. Photos stay on this device in this
+            simulation and are not uploaded.
           </Text>
           <TouchableOpacity
             style={styles.uploadCard}
             onPress={pickImage}
             activeOpacity={0.9}
           >
-            <Text style={styles.uploadIcon}>⬆</Text>
-            <Text style={styles.uploadTitle}>Tap to upload or scan report</Text>
-            <Text style={styles.uploadSubtitle}>JPG, PNG up to 10MB</Text>
+            <Text style={styles.uploadIcon}>📷</Text>
+            <Text style={styles.uploadTitle}>Take photo</Text>
+            <Text style={styles.uploadSubtitle}>Open camera to capture damage</Text>
           </TouchableOpacity>
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
             {images.map((uri) => (
@@ -301,23 +311,115 @@ export default function ReportAccidentScreen() {
       );
     }
 
+    if (step === 5) {
+      return (
+        <View>
+          <Text style={styles.sectionTitle}>Tell us what happened</Text>
+          <Text style={styles.sectionSubtitle}>
+            Please provide as much detail as possible about the incident. Use voice input to
+            record your description instead of typing.
+          </Text>
+          <View style={styles.voiceBox}>
+            <Text style={styles.voiceHint}>
+              {isRecording
+                ? 'Recording… speak clearly about what happened.'
+                : hasVoiceNote
+                ? 'Voice note recorded for this incident.'
+                : 'Tap the button below to start recording a short description.'}
+            </Text>
+          </View>
+          <TouchableOpacity
+            style={[
+              styles.voiceButton,
+              isRecording && styles.voiceButtonActive,
+            ]}
+            onPress={() => {
+              if (isRecording) {
+                setIsRecording(false);
+                setHasVoiceNote(true);
+                if (!description) {
+                  setDescription('Voice note recorded about the incident.');
+                }
+              } else {
+                setIsRecording(true);
+                setHasVoiceNote(false);
+              }
+            }}
+          >
+            <Text style={styles.voiceButtonText}>
+              {isRecording ? 'Stop recording' : 'Voice input'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+
     return (
       <View>
-        <Text style={styles.sectionTitle}>Review & submit</Text>
+        <Text style={styles.sectionTitle}>Final review</Text>
+        <Text style={styles.sectionSubtitle}>
+          Review the information below before submitting your claim.
+        </Text>
+
         <View style={styles.reviewCard}>
-          <Text style={styles.reviewTitle}>Incident details</Text>
-          <Text style={styles.reviewLabel}>Type</Text>
-          <Text style={styles.reviewValue}>{accidentType}</Text>
-          <Text style={styles.reviewLabel}>Date & time</Text>
-          <Text style={styles.reviewValue}>
-            {date} • {time}
+          <View style={styles.reviewHeaderRow}>
+            <Text style={styles.reviewTitle}>Damage photos</Text>
+          </View>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={{ marginTop: 8, marginBottom: 12 }}
+          >
+            {images.map((uri) => (
+              <Image
+                key={uri}
+                source={{ uri }}
+                style={styles.previewImage}
+              />
+            ))}
+          </ScrollView>
+
+          <View style={styles.divider} />
+
+          <View style={styles.reviewHeaderRow}>
+            <Text style={styles.reviewTitle}>Incident details</Text>
+          </View>
+          <View style={styles.incidentCard}>
+            <View style={styles.mapMini}>
+              <Text style={styles.mapMiniLabel}>MAP PLACEHOLDER</Text>
+            </View>
+            <Text style={styles.reviewLabel}>Description</Text>
+            <Text style={styles.reviewValue}>
+              {description || 'Voice note recorded about the incident.'}
+            </Text>
+            <View style={styles.dateTimeRow}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.reviewLabel}>Date</Text>
+                <Text style={styles.reviewValue}>{date}</Text>
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.reviewLabel}>Time</Text>
+                <Text style={styles.reviewValue}>{time}</Text>
+              </View>
+            </View>
+          </View>
+        </View>
+
+        <View style={styles.declarationRow}>
+          <TouchableOpacity
+            style={[
+              styles.checkbox,
+              acceptedDeclaration && styles.checkboxChecked,
+            ]}
+            onPress={() => setAcceptedDeclaration((v) => !v)}
+          >
+            {acceptedDeclaration && <Text style={styles.checkboxTick}>✓</Text>}
+          </TouchableOpacity>
+          <Text style={styles.declarationText}>
+            I certify that the information provided is true and accurate to the best of my
+            knowledge. I understand that fraudulent claims may lead to policy cancellation or
+            legal action.
           </Text>
-          <Text style={styles.reviewLabel}>Description</Text>
-          <Text style={styles.reviewValue}>{description}</Text>
-          <Text style={styles.reviewLabel}>Damage</Text>
-          <Text style={styles.reviewValue}>{damageDescription || 'Not specified'}</Text>
-          <Text style={styles.reviewLabel}>Location</Text>
-          <Text style={styles.reviewValue}>{locationLabel}</Text>
         </View>
       </View>
     );
@@ -580,6 +682,95 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#111827',
     marginTop: 2,
+  },
+  reviewHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  divider: {
+    height: 1,
+    backgroundColor: '#E5E7EB',
+    marginVertical: 12,
+  },
+  incidentCard: {
+    marginTop: 4,
+  },
+  mapMini: {
+    height: 120,
+    borderRadius: 12,
+    backgroundColor: '#E5E7EB',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  mapMiniLabel: {
+    fontSize: 12,
+    color: '#6B7280',
+  },
+  dateTimeRow: {
+    flexDirection: 'row',
+    marginTop: 8,
+    columnGap: 16,
+  },
+  voiceBox: {
+    backgroundColor: '#F3F4F6',
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 12,
+  },
+  voiceHint: {
+    fontSize: 13,
+    color: '#4B5563',
+  },
+  voiceButton: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: 999,
+    backgroundColor: '#111827',
+  },
+  voiceButtonActive: {
+    backgroundColor: '#DC2626',
+  },
+  voiceButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  uploadStatusText: {
+    fontSize: 12,
+    color: '#4B5563',
+    marginBottom: 12,
+  },
+  declarationRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginTop: 16,
+  },
+  checkbox: {
+    width: 18,
+    height: 18,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: '#9CA3AF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 8,
+    marginTop: 2,
+  },
+  checkboxChecked: {
+    backgroundColor: '#111827',
+    borderColor: '#111827',
+  },
+  checkboxTick: {
+    fontSize: 12,
+    color: '#FFFFFF',
+  },
+  declarationText: {
+    flex: 1,
+    fontSize: 11,
+    color: '#4B5563',
   },
   footer: {
     flexDirection: 'row',

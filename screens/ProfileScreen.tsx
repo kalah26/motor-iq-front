@@ -6,12 +6,30 @@ import useClaimsStore from '../stores/claimsStore';
 export default function ProfileScreen() {
   const profile = useClaimsStore((state) => state.profile);
   const updateProfile = useClaimsStore((state) => state.updateProfile);
+  const theme = useClaimsStore((state) => state.theme);
+  const toggleTheme = useClaimsStore((state) => state.toggleTheme);
   const navigation = useNavigation();
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, theme === 'dark' && styles.containerDark]}>
       <ScrollView contentContainerStyle={styles.scroll}>
         <Text style={styles.title}>Driver Profile</Text>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Appearance</Text>
+          <View style={styles.themeRow}>
+            <Text style={styles.label}>Theme</Text>
+            <TouchableOpacity
+              style={styles.themeToggle}
+              activeOpacity={0.9}
+              onPress={toggleTheme}
+            >
+              <Text style={styles.themeToggleText}>
+                {theme === 'light' ? 'Light' : 'Dark'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Personal details</Text>
@@ -70,6 +88,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F7F9FC',
+  },
+  containerDark: {
+    backgroundColor: '#020617',
   },
   scroll: {
     paddingHorizontal: 20,
@@ -153,5 +174,20 @@ const styles = StyleSheet.create({
   upgradeText: {
     fontSize: 12,
     color: '#4B5563',
+  },
+  themeRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  themeToggle: {
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: '#111827',
+  },
+  themeToggleText: {
+    fontSize: 12,
+    color: '#FFFFFF',
   },
 });

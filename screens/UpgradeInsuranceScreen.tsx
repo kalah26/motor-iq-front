@@ -32,6 +32,7 @@ export default function UpgradeInsuranceScreen() {
   const navigation = useNavigation<Nav>();
   const profile = useClaimsStore((state) => state.profile);
   const updateProfile = useClaimsStore((state) => state.updateProfile);
+  const theme = useClaimsStore((state) => state.theme);
   const [selectedId, setSelectedId] = useState<string>('plus');
   const [confirmed, setConfirmed] = useState(false);
 
@@ -46,7 +47,7 @@ export default function UpgradeInsuranceScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, theme === 'dark' && styles.containerDark]}>
       <View style={styles.headerRow}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Text style={styles.backText}>Back</Text>
@@ -127,6 +128,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F7F9FC',
+  },
+  containerDark: {
+    backgroundColor: '#020617',
   },
   headerRow: {
     flexDirection: 'row',

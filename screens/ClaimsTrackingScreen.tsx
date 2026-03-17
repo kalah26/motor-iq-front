@@ -6,6 +6,8 @@ import TimelineProgress from '../components/TimelineProgress';
 export default function ClaimsTrackingScreen() {
   const claims = useClaimsStore((state) => state.claims);
   const [selectedClaim, setSelectedClaim] = useState<ExtendedClaim | null>(null);
+  const theme = useClaimsStore((state) => state.theme);
+  const isDark = theme === 'dark';
 
   const renderItem = ({ item }: { item: ExtendedClaim }) => (
     <TouchableOpacity style={styles.card} onPress={() => setSelectedClaim(item)}>
@@ -19,7 +21,7 @@ export default function ClaimsTrackingScreen() {
   );
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, isDark && styles.containerDark]}>
       <Text style={styles.title}>Claim Status</Text>
       <FlatList
         contentContainerStyle={styles.listContent}
@@ -78,6 +80,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#F7F9FC',
     paddingHorizontal: 20,
     paddingTop: 20,
+  },
+  containerDark: {
+    backgroundColor: '#020617',
   },
   title: {
     fontSize: 18,

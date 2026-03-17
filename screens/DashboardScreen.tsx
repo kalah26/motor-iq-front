@@ -20,19 +20,23 @@ export default function DashboardScreen() {
   const navigation = useNavigation<DashboardScreenNavigationProp>();
   const profile = useClaimsStore((state) => state.profile);
   const claims = useClaimsStore((state) => state.claims);
+  const theme = useClaimsStore((state) => state.theme);
+  const isDark = theme === 'dark';
   const [selectedClaim, setSelectedClaim] = React.useState<
     ReturnType<typeof useClaimsStore>['claims'][number] | null
   >(null);
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, isDark && styles.containerDark]}>
       <ScrollView contentContainerStyle={styles.scroll}>
         <View style={styles.header}>
           <View>
             <Text style={styles.appName}>MotorIQ</Text>
-            <Text style={styles.welcomeText}>Welcome back</Text>
+            <Text style={styles.welcomeText}>Welcome back, {profile.name}</Text>
           </View>
-          <View style={styles.avatar} />
+          <View style={styles.avatar}>
+            <Text style={styles.avatarText}>{profile.avatarInitials ?? 'DR'}</Text>
+          </View>
         </View>
 
         <TouchableOpacity
@@ -106,6 +110,9 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F7F9FC',
   },
+  containerDark: {
+    backgroundColor: '#020617',
+  },
   scroll: {
     paddingHorizontal: 20,
     paddingTop: 20,
@@ -131,7 +138,14 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#EDF1F7',
+    backgroundColor: '#111827',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  avatarText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
   },
   primaryButton: {
     backgroundColor: '#111827',
