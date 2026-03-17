@@ -1,4 +1,6 @@
-import create from 'zustand';
+import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Claim, Vehicle } from '../types';
 
 export type ClaimStatus =
@@ -46,7 +48,9 @@ interface ClaimsState {
 
 let nextId = 3;
 
-const useClaimsStore = create<ClaimsState>((set, get) => ({
+const useClaimsStore = create<ClaimsState>()(
+  persist(
+    (set, get) => ({
   profile: {
     name: 'Amira Mensah',
     phone: '+233 555 123 456',
@@ -161,7 +165,14 @@ const useClaimsStore = create<ClaimsState>((set, get) => ({
     set((state) => ({
       theme: state.theme === 'light' ? 'dark' : 'light',
     })),
-}));
+    }),
+    {
+      name: 'motoriq-claims-store',
+      storage: createJSONStorage(() => AsyncStorage),
+      partialize: (state) => state,
+    },
+  ),
+);
 
 export default useClaimsStore;
 

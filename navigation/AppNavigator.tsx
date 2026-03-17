@@ -9,7 +9,10 @@ import ReportAccidentScreen from '../screens/ReportAccidentScreen';
 import ClaimsTrackingScreen from '../screens/ClaimsTrackingScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import UpgradeInsuranceScreen from '../screens/UpgradeInsuranceScreen';
+import AdminDashboardScreen from '../screens/AdminDashboardScreen';
+import WebLandingScreen from '../screens/WebLandingScreen';
 
+const RootStack = createStackNavigator();
 const HomeStack = createStackNavigator();
 const ClaimsStack = createStackNavigator();
 const ProfileStack = createStackNavigator();
@@ -42,10 +45,9 @@ function ProfileStackScreen() {
   );
 }
 
-export default function AppNavigator() {
+function MainTabs() {
   return (
-    <NavigationContainer>
-      <Tab.Navigator
+    <Tab.Navigator
         screenOptions={({ route }) => ({
           headerShown: false,
           tabBarActiveTintColor: '#0B1020',
@@ -75,6 +77,28 @@ export default function AppNavigator() {
         <Tab.Screen name="Claims" component={ClaimsStackScreen} />
         <Tab.Screen name="Profile" component={ProfileStackScreen} />
       </Tab.Navigator>
+  );
+}
+
+const linking = {
+  prefixes: [],
+  config: {
+    screens: {
+      Landing: 'acceuil',
+      Main: 'app',
+      Admin: 'admin',
+    },
+  },
+};
+
+export default function AppNavigator() {
+  return (
+    <NavigationContainer linking={linking}>
+      <RootStack.Navigator screenOptions={{ headerShown: false }}>
+        <RootStack.Screen name="Landing" component={WebLandingScreen} />
+        <RootStack.Screen name="Main" component={MainTabs} />
+        <RootStack.Screen name="Admin" component={AdminDashboardScreen} />
+      </RootStack.Navigator>
     </NavigationContainer>
   );
 }

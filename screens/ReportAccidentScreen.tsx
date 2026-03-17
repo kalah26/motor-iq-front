@@ -13,6 +13,7 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { useNavigation } from '@react-navigation/native';
 import { RootStackParamList } from '../types';
 import useClaimsStore from '../stores/claimsStore';
+import AIAssistantPanel from '../components/AIAssistantPanel';
 
 type NavProp = StackNavigationProp<RootStackParamList, 'ReportAccident'>;
 
@@ -85,6 +86,7 @@ export default function ReportAccidentScreen() {
       fraud_risk_score: 0,
       vehicleName: vehicle ? `${vehicle.make} ${vehicle.model}` : 'Unknown vehicle',
       submissionDate: date,
+      images,
     });
     navigation.navigate('ClaimsTracking');
   };
@@ -102,6 +104,8 @@ export default function ReportAccidentScreen() {
   };
 
   const renderContent = () => {
+    const baseContext = `report-step-${step}`;
+
     if (step === 1) {
       return (
         <View>
@@ -137,6 +141,7 @@ export default function ReportAccidentScreen() {
               </TouchableOpacity>
             );
           })}
+          <AIAssistantPanel context={baseContext} />
         </View>
       );
     }
@@ -245,6 +250,7 @@ export default function ReportAccidentScreen() {
             multiline
             placeholder="E.g. Another vehicle backed into the front bumper while exiting the parking spot."
           />
+          <AIAssistantPanel context={baseContext} />
         </View>
       );
     }
@@ -282,6 +288,7 @@ export default function ReportAccidentScreen() {
             onChangeText={setDamageDescription}
             multiline
           />
+          <AIAssistantPanel context={baseContext} />
         </View>
       );
     }
@@ -307,6 +314,7 @@ export default function ReportAccidentScreen() {
             </View>
           </View>
           <Text style={styles.locationText}>{locationLabel}</Text>
+          <AIAssistantPanel context={baseContext} />
         </View>
       );
     }
@@ -350,6 +358,7 @@ export default function ReportAccidentScreen() {
               {isRecording ? 'Stop recording' : 'Voice input'}
             </Text>
           </TouchableOpacity>
+          <AIAssistantPanel context={baseContext} />
         </View>
       );
     }
@@ -421,6 +430,7 @@ export default function ReportAccidentScreen() {
             legal action.
           </Text>
         </View>
+        <AIAssistantPanel context={baseContext} />
       </View>
     );
   };
