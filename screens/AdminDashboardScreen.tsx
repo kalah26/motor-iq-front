@@ -1,5 +1,8 @@
+
+
 import React, { useMemo, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, useWindowDimensions, ActivityIndicator } from 'react-native';
+
 import useClaimsStore from '../stores/claimsStore';
 
 type Page = 'Dashboard' | 'Claims' | 'Drivers' | 'Vehicles' | 'Policies';
@@ -9,6 +12,26 @@ export default function AdminDashboardScreen() {
   const driver = useClaimsStore((s) => s.profile);
   const [page, setPage] = useState<Page>('Dashboard');
   const [query, setQuery] = useState('');
+  const { width } = useWindowDimensions();
+  const isMobile = width < 700;
+  const [selectedDriver, setSelectedDriver] = useState(null);
+  const [selectedClaim, setSelectedClaim] = useState(null);
+  const [selectedVehicle, setSelectedVehicle] = useState(null);
+  const [showClaimEval, setShowClaimEval] = useState(false);
+  const [loadingEval, setLoadingEval] = useState(false);
+  const [evalResult, setEvalResult] = useState(null);
+  // Vehicle validation state: { [vehicleId]: 'Auto' | 'Invalid' | 'To verify' }
+  const [vehicleValidations, setVehicleValidations] = useState(() => {
+    const initial: Record<string, string> = {};
+    driver.vehicles.forEach((v, idx) => {
+      initial[v.id] = idx % 3 === 0 ? 'Auto' : idx % 3 === 1 ? 'Invalid' : 'To verify';
+    });
+    return initial;
+  });
+
+  const handleVehicleValidation = (vehicleId: string, value: string) => {
+    setVehicleValidations((prev) => ({ ...prev, [vehicleId]: value }));
+  };
 
   const totalClaims = claims.length;
   const highRisk = claims.filter((c) => c.fraud_risk_score >= 70).length;
@@ -52,8 +75,8 @@ export default function AdminDashboardScreen() {
   };
 
   return (
-    <View style={styles.root}>
-      <View style={styles.sidebar}>
+    <View style={[styles.root, isMobile && styles.rootMobile]}>
+      <View style={[styles.sidebar, isMobile && styles.sidebarMobile]}>
         <Text style={styles.logo}>MotorIQ</Text>
         <Text style={styles.subLogo}>ENTERPRISE</Text>
         <View style={{ height: 16 }} />
@@ -64,7 +87,7 @@ export default function AdminDashboardScreen() {
         </View>
       </View>
 
-      <ScrollView style={styles.main} contentContainerStyle={styles.mainContent}>
+      <ScrollView style={[styles.main, isMobile && styles.mainMobile]} contentContainerStyle={[styles.mainContent, isMobile && styles.mainContentMobile]}>
         <View style={styles.topBar}>
           <View style={styles.searchBox}>
             <Text style={styles.searchIcon}>⌕</Text>
@@ -91,7 +114,7 @@ export default function AdminDashboardScreen() {
               Real‑time fleet performance and claim intelligence (simulation).
             </Text>
 
-            <View style={styles.metricsRow}>
+            <View style={[styles.metricsRow, isMobile && styles.metricsRowMobile]}>
               <View style={styles.metricCard}>
                 <Text style={styles.metricLabel}>Total Claims</Text>
                 <Text style={styles.metricValue}>{totalClaims}</Text>
@@ -109,11 +132,13 @@ export default function AdminDashboardScreen() {
               </View>
             </View>
 
-            <View style={styles.panelRow}>
+            <View style={[styles.panelRow, isMobile && styles.panelRowMobile]}>
               <View style={styles.prioritizedCard}>
                 <View style={styles.sectionHeader}>
                   <Text style={styles.sectionTitle}>Prioritized claims</Text>
-                  <Text style={styles.linkText}>View all</Text>
+                  <TouchableOpacity onPress={() => {/* TODO: implement view all action */}}>
+                    <Text style={styles.linkText}>View all</Text>
+                  </TouchableOpacity>
                 </View>
                 {claims.slice(0, 6).map((c) => (
                   <View key={c.id} style={styles.claimRow}>
@@ -180,6 +205,7 @@ export default function AdminDashboardScreen() {
               <Text style={[styles.th, { flex: 0.9 }]}>Risk</Text>
               <Text style={[styles.th, { flex: 1 }]}>Status</Text>
               <Text style={[styles.th, { flex: 1 }]}>Date</Text>
+              <Text style={[styles.th, { flex: 1 }]}>Actions</Text>
             </View>
             {filteredClaims.slice(0, 25).map((c) => (
               <View key={c.id} style={styles.tr}>
@@ -191,8 +217,80 @@ export default function AdminDashboardScreen() {
                 <Text style={[styles.td, { flex: 0.9 }]}>{c.fraud_risk_score}/100</Text>
                 <Text style={[styles.td, { flex: 1 }]}>{c.status}</Text>
                 <Text style={[styles.td, { flex: 1 }]}>{c.submissionDate}</Text>
+                <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <TouchableOpacity onPress={() => setSelectedClaim(c)}>
+                    <Text style={{ color: '#2563EB', fontWeight: 'bold' }}>View more</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
             ))}
+            {/* Modale détails claim */}
+            {selectedClaim && !showClaimEval && (
+              <View style={styles.modalBackdrop}>
+                <View style={styles.modalCard}>
+                  <View style={styles.modalHeader}>
+                    <Text style={styles.modalTitle}>Claim Details</Text>
+                    <TouchableOpacity onPress={() => setSelectedClaim(null)}>
+                      <TouchableOpacity onPress={() => setSelectedClaim(null)}>
+                        <Text style={styles.closeText}>Close</Text>
+                      </TouchableOpacity>
+                    </TouchableOpacity>
+                  </View>
+                  <Text style={styles.modalMeta}>ID: {selectedClaim.claimId}</Text>
+                  <Text style={styles.modalMeta}>Vehicle: {selectedClaim.vehicleName}</Text>
+                  <Text style={styles.modalMeta}>Description: {selectedClaim.description}</Text>
+                  <Text style={styles.modalMeta}>Status: {selectedClaim.status}</Text>
+                  <Text style={styles.modalMeta}>Date: {selectedClaim.submissionDate}</Text>
+                  <Text style={styles.modalMeta}>AI Score: {selectedClaim.fraud_risk_score}/100</Text>
+                  <Text style={styles.modalMeta}>AI Explanation: {selectedClaim.fraud_risk_score > 70 ? "High risk detected by AI." : selectedClaim.fraud_risk_score > 30 ? "Medium risk." : "Low risk."}</Text>
+                  {/* Add more details if available */}
+                  <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 16 }}>
+                    <TouchableOpacity
+                      style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#2563EB', borderRadius: 6, paddingVertical: 8, paddingHorizontal: 14 }}
+                      onPress={() => {
+                        setShowClaimEval(true);
+                        setLoadingEval(true);
+                        setEvalResult(null);
+                        setTimeout(() => {
+                          setLoadingEval(false);
+                          setEvalResult({
+                            score: selectedClaim.fraud_risk_score,
+                            explanation: selectedClaim.fraud_risk_score > 70 ? "High risk detected by AI (multiple anomalies in the claim)." : selectedClaim.fraud_risk_score > 30 ? "Medium risk: some inconsistencies found." : "Low risk: claim seems consistent.",
+                          });
+                        }, 1800);
+                      }}
+                    >
+                      <Text style={{ fontSize: 18, marginRight: 8 }}>🪄</Text>
+                      <Text style={{ color: '#fff', fontWeight: 'bold' }}>Verify with our AI</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </View>
+            )}
+            {/* Modale évaluation IA */}
+            {showClaimEval && (
+              <View style={styles.modalBackdrop}>
+                <View style={styles.modalCard}>
+                  <View style={styles.modalHeader}>
+                    <Text style={styles.modalTitle}>Évaluation IA</Text>
+                    <TouchableOpacity onPress={() => { setShowClaimEval(false); setSelectedClaim(null); }}>
+                      <Text style={styles.closeText}>Fermer</Text>
+                    </TouchableOpacity>
+                  </View>
+                  {loadingEval ? (
+                    <View style={{ alignItems: 'center', marginVertical: 24 }}>
+                      <ActivityIndicator size="large" color="#2563EB" />
+                      <Text style={{ marginTop: 16, color: '#2563EB' }}>Analyse IA en cours...</Text>
+                    </View>
+                  ) : evalResult && (
+                    <View style={{ alignItems: 'center', marginVertical: 16 }}>
+                      <Text style={{ fontSize: 32, fontWeight: 'bold', color: evalResult.score > 70 ? '#EF4444' : evalResult.score > 30 ? '#F59E42' : '#22C55E' }}>{evalResult.score}/100</Text>
+                      <Text style={{ marginTop: 10, fontSize: 16, color: '#111', textAlign: 'center' }}>{evalResult.explanation}</Text>
+                    </View>
+                  )}
+                </View>
+              </View>
+            )}
           </View>
         )}
 
@@ -205,6 +303,7 @@ export default function AdminDashboardScreen() {
               <Text style={[styles.th, { flex: 1.6 }]}>Name</Text>
               <Text style={[styles.th, { flex: 1.6 }]}>Phone</Text>
               <Text style={[styles.th, { flex: 0.8 }]}>Vehicles</Text>
+              <Text style={[styles.th, { flex: 1 }]}>Actions</Text>
             </View>
             {fakeDrivers.map((d) => (
               <View key={d.id} style={styles.tr}>
@@ -212,8 +311,30 @@ export default function AdminDashboardScreen() {
                 <Text style={[styles.td, { flex: 1.6 }]}>{d.name}</Text>
                 <Text style={[styles.td, { flex: 1.6 }]}>{d.phone}</Text>
                 <Text style={[styles.td, { flex: 0.8 }]}>{d.vehicles}</Text>
+                <View style={{ flex: 1 }}>
+                  <TouchableOpacity onPress={() => setSelectedDriver(d)}>
+                    <Text style={{ color: '#2563EB', fontWeight: 'bold' }}>View more</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
             ))}
+            {/* Modale détails driver */}
+            {selectedDriver && (
+              <View style={styles.modalBackdrop}>
+                <View style={styles.modalCard}>
+                  <View style={styles.modalHeader}>
+                    <Text style={styles.modalTitle}>Driver Details</Text>
+                    <TouchableOpacity onPress={() => setSelectedDriver(null)}>
+                      <Text style={styles.closeText}>Close</Text>
+                    </TouchableOpacity>
+                  </View>
+                  <Text style={styles.modalMeta}>ID: {selectedDriver.id}</Text>
+                  <Text style={styles.modalMeta}>Name: {selectedDriver.name}</Text>
+                  <Text style={styles.modalMeta}>Phone: {selectedDriver.phone}</Text>
+                  <Text style={styles.modalMeta}>Number of vehicles: {selectedDriver.vehicles}</Text>
+                </View>
+              </View>
+            )}
           </View>
         )}
 
@@ -226,6 +347,7 @@ export default function AdminDashboardScreen() {
               <Text style={[styles.th, { flex: 1.2 }]}>Make</Text>
               <Text style={[styles.th, { flex: 1.2 }]}>Model</Text>
               <Text style={[styles.th, { flex: 0.8 }]}>Year</Text>
+              <Text style={[styles.th, { flex: 1 }]}>Vérification</Text>
             </View>
             {driver.vehicles.map((v) => (
               <View key={v.id} style={styles.tr}>
@@ -233,6 +355,17 @@ export default function AdminDashboardScreen() {
                 <Text style={[styles.td, { flex: 1.2 }]}>{v.make}</Text>
                 <Text style={[styles.td, { flex: 1.2 }]}>{v.model}</Text>
                 <Text style={[styles.td, { flex: 0.8 }]}>{v.year}</Text>
+                <View style={[styles.td, { flex: 1, flexDirection: 'row', alignItems: 'center' }]}> 
+                  <select
+                    value={vehicleValidations[v.id]}
+                    onChange={e => handleVehicleValidation(v.id, e.target.value)}
+                    style={{ padding: 4, borderRadius: 4, border: '1px solid #ccc', fontWeight: 'bold', color: vehicleValidations[v.id] === 'Auto' ? '#22C55E' : vehicleValidations[v.id] === 'Invalid' ? '#EF4444' : '#F59E42', background: '#fff' }}
+                  >
+                    <option value="Auto">Auto</option>
+                    <option value="Invalid">Invalid</option>
+                    <option value="To verify">To verify</option>
+                  </select>
+                </View>
               </View>
             ))}
           </View>
@@ -259,24 +392,62 @@ const styles = StyleSheet.create({
   root: {
     flex: 1,
     flexDirection: 'row',
-    backgroundColor: '#020617',
+    backgroundColor: '#fff',
+  },
+  rootMobile: {
+    flexDirection: 'column',
+    backgroundColor: '#fff',
   },
   sidebar: {
     width: 220,
     paddingTop: 32,
     paddingHorizontal: 20,
-    backgroundColor: '#020617',
+    backgroundColor: '#fff',
+    borderRightWidth: 1,
+    borderRightColor: '#E5E7EB',
+  },
+  sidebarMobile: {
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 12,
+    paddingTop: 12,
+    paddingBottom: 12,
+    backgroundColor: '#fff',
+    borderRightWidth: 0,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  main: {
+    flex: 1,
+    backgroundColor: '#fff',
+  },
+  mainMobile: {
+    width: '100%',
+    padding: 0,
+    backgroundColor: '#fff',
+  },
+  mainContent: {
+    paddingHorizontal: 24,
+    paddingTop: 24,
+    paddingBottom: 32,
+  },
+  mainContentMobile: {
+    paddingHorizontal: 8,
+    paddingTop: 12,
+    paddingBottom: 16,
   },
   logo: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#E5E7EB',
+    color: '#111',
     marginBottom: 2,
   },
   subLogo: {
     fontSize: 11,
     letterSpacing: 1.2,
-    color: '#64748B',
+    color: '#555',
     fontWeight: '700',
   },
   navBtn: {
@@ -286,35 +457,35 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   navBtnActive: {
-    backgroundColor: '#0F172A',
+    backgroundColor: '#F1F5F9',
   },
   navText: {
     fontSize: 13,
-    color: '#94A3B8',
+    color: '#111',
   },
   navTextActive: {
-    color: '#F9FAFB',
+    color: '#2563EB',
     fontWeight: '600',
   },
   sidebarFooter: {
     marginTop: 40,
     padding: 12,
     borderRadius: 12,
-    backgroundColor: '#0F172A',
+    backgroundColor: '#F1F5F9',
   },
   agentLabel: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#E5E7EB',
+    color: '#111',
     marginBottom: 4,
   },
   agentText: {
     fontSize: 11,
-    color: '#9CA3AF',
+    color: '#2563EB',
   },
   main: {
     flex: 1,
-    backgroundColor: '#0B1120',
+    backgroundColor: '#fff',
   },
   mainContent: {
     paddingHorizontal: 24,
@@ -332,20 +503,20 @@ const styles = StyleSheet.create({
     maxWidth: 540,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#020617',
+    backgroundColor: '#F1F5F9',
     borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 10,
     borderWidth: 1,
-    borderColor: '#111827',
+    borderColor: '#CBD5E1',
   },
   searchIcon: {
-    color: '#94A3B8',
+    color: '#64748B',
     marginRight: 8,
   },
   searchInput: {
     flex: 1,
-    color: '#E5E7EB',
+    color: '#1E293B',
     fontSize: 13,
   },
   topBarRight: {
@@ -357,29 +528,29 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: '#111827',
+    backgroundColor: '#2563EB',
     alignItems: 'center',
     justifyContent: 'center',
   },
   userInitials: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#E5E7EB',
+    color: '#fff',
   },
   userName: {
     marginLeft: 8,
-    color: '#94A3B8',
+    color: '#334155',
     fontSize: 12,
   },
   mainTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#F9FAFB',
+    color: '#1E293B',
     marginBottom: 4,
   },
   mainSubtitle: {
     fontSize: 13,
-    color: '#9CA3AF',
+    color: '#64748B',
     marginBottom: 20,
   },
   metricsRow: {
@@ -387,26 +558,32 @@ const styles = StyleSheet.create({
     columnGap: 12,
     marginBottom: 20,
   },
+  metricsRowMobile: {
+    flexDirection: 'column',
+    rowGap: 12,
+    width: '100%',
+  },
   metricCard: {
     flex: 1,
     borderRadius: 14,
-    backgroundColor: '#020617',
+    backgroundColor: '#F3F4F6',
     padding: 14,
+    minWidth: 0,
   },
   metricLabel: {
     fontSize: 12,
-    color: '#9CA3AF',
+    color: '#64748B',
     marginBottom: 6,
   },
   metricValue: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#F9FAFB',
+    color: '#1E293B',
   },
   metricDelta: {
     marginTop: 6,
     fontSize: 12,
-    color: '#86EFAC',
+    color: '#22C55E',
     fontWeight: '600',
   },
   panelRow: {
@@ -414,11 +591,18 @@ const styles = StyleSheet.create({
     columnGap: 16,
     marginTop: 4,
   },
+  panelRowMobile: {
+    flexDirection: 'column',
+    rowGap: 16,
+    width: '100%',
+  },
   prioritizedCard: {
     flex: 2,
     borderRadius: 16,
-    backgroundColor: '#020617',
+    backgroundColor: '#F3F4F6',
     padding: 16,
+    minWidth: 0,
+    width: '100%',
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -433,7 +617,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#F9FAFB',
+    color: '#1E293B',
     marginBottom: 10,
   },
   claimRow: {
@@ -446,39 +630,41 @@ const styles = StyleSheet.create({
   claimId: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#E5E7EB',
+    color: '#1E293B',
   },
   claimDesc: {
     fontSize: 11,
-    color: '#9CA3AF',
+    color: '#64748B',
   },
   badge: {
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 999,
-    backgroundColor: '#1D4ED8',
+    backgroundColor: '#2563EB',
     marginHorizontal: 6,
   },
-  badgeHigh: { backgroundColor: '#991B1B' },
-  badgeMed: { backgroundColor: '#92400E' },
-  badgeLow: { backgroundColor: '#1D4ED8' },
+  badgeHigh: { backgroundColor: '#EF4444' },
+  badgeMed: { backgroundColor: '#F59E42' },
+  badgeLow: { backgroundColor: '#2563EB' },
   badgeText: {
     fontSize: 11,
-    color: '#EFF6FF',
+    color: '#fff',
   },
   statusText: {
     fontSize: 11,
-    color: '#FBBF24',
+    color: '#F59E42',
   },
   aiPanel: {
     flex: 1,
     borderRadius: 16,
-    backgroundColor: '#111827',
+    backgroundColor: '#E0E7EF',
     padding: 16,
+    minWidth: 0,
+    width: '100%',
   },
   aiText: {
     fontSize: 12,
-    color: '#E5E7EB',
+    color: '#1E293B',
     marginTop: 6,
   },
   aiStatRow: {
@@ -497,8 +683,11 @@ const styles = StyleSheet.create({
   },
   tableCard: {
     borderRadius: 16,
-    backgroundColor: '#020617',
+    backgroundColor: '#F3F4F6',
     padding: 16,
+    width: '100%',
+    minWidth: 0,
+    marginBottom: 16,
   },
   tableHeaderRow: {
     flexDirection: 'row',
@@ -509,34 +698,36 @@ const styles = StyleSheet.create({
   },
   th: {
     fontSize: 11,
-    color: '#94A3B8',
+    color: '#1E293B',
     fontWeight: '600',
   },
   tr: {
     flexDirection: 'row',
     paddingVertical: 10,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#111827',
+    borderBottomColor: '#CBD5E1',
   },
   td: {
     fontSize: 12,
-    color: '#E5E7EB',
+    color: '#334155',
   },
   policyCard: {
     marginTop: 12,
     borderRadius: 14,
-    backgroundColor: '#0F172A',
+    backgroundColor: '#E0E7EF',
     padding: 14,
+    width: '100%',
+    minWidth: 0,
   },
   policyName: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#F9FAFB',
+    color: '#1E293B',
     marginBottom: 8,
   },
   policyMeta: {
     fontSize: 12,
-    color: '#94A3B8',
+    color: '#64748B',
     marginTop: 2,
   },
 });

@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, useWindowDimensions } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { useNavigation } from '@react-navigation/native';
 
@@ -7,6 +7,8 @@ type Nav = StackNavigationProp<any>;
 
 export default function WebLandingScreen() {
   const navigation = useNavigation<Nav>();
+  const { width } = useWindowDimensions();
+  const isMobile = width < 700;
 
   const goToAdmin = () => {
     navigation.navigate('Admin' as never);
@@ -16,9 +18,9 @@ export default function WebLandingScreen() {
   };
 
   return (
-    <View style={styles.root}>
-      <ScrollView contentContainerStyle={styles.page}>
-        <View style={styles.navbar}>
+    <View style={[styles.root, isMobile && styles.rootMobile]}>
+      <ScrollView contentContainerStyle={[styles.page, isMobile && styles.pageMobile]}>
+        <View style={[styles.navbar, isMobile && styles.navbarMobile]}>
           <View style={styles.brandRow}>
             <View style={styles.brandMark} />
             <Text style={styles.brandText}>MotorIQ</Text>
@@ -36,9 +38,9 @@ export default function WebLandingScreen() {
           </View>
         </View>
 
-        <View style={styles.container}>
-          <View style={styles.heroRow}>
-            <View style={styles.heroLeft}>
+        <View style={[styles.container, isMobile && styles.containerMobile]}>
+          <View style={[styles.heroRow, isMobile && styles.heroRowMobile]}>
+            <View style={[styles.heroLeft, isMobile && styles.heroLeftMobile]}>
               <View style={styles.pill}>
                 <Text style={styles.pillText}>Agentic claims experience • Demo</Text>
               </View>
@@ -75,7 +77,7 @@ export default function WebLandingScreen() {
               </View>
             </View>
 
-            <View style={styles.heroRight}>
+            <View style={[styles.heroRight, isMobile && styles.heroRightMobile]}>
               <View style={styles.mockPanel}>
                 <Text style={styles.mockTitle}>Quick access</Text>
                 <Text style={styles.mockSubtitle}>
@@ -109,32 +111,32 @@ export default function WebLandingScreen() {
             </View>
           </View>
 
-          <View style={styles.section}>
+          <View style={[styles.section, isMobile && styles.sectionMobile]}>
             <Text style={styles.sectionTitle}>Why MotorIQ</Text>
             <Text style={styles.sectionSubtitle}>
               A clean, transparent experience for drivers — and an operational dashboard for
               insurers.
             </Text>
-            <View style={styles.featureGrid}>
-              <View style={styles.featureCard}>
+            <View style={[styles.featureGrid, isMobile && styles.featureGridMobile]}>
+              <View style={[styles.featureCard, isMobile && styles.featureCardMobile]}>
                 <Text style={styles.featureTitle}>Smarter reporting</Text>
                 <Text style={styles.featureText}>
                   Guided steps with consistent evidence capture to reduce manual follow‑ups.
                 </Text>
               </View>
-              <View style={styles.featureCard}>
+              <View style={[styles.featureCard, isMobile && styles.featureCardMobile]}>
                 <Text style={styles.featureTitle}>Fraud signals</Text>
                 <Text style={styles.featureText}>
                   Simulated “processing” highlights inconsistencies and risk scoring logic.
                 </Text>
               </View>
-              <View style={styles.featureCard}>
+              <View style={[styles.featureCard, isMobile && styles.featureCardMobile]}>
                 <Text style={styles.featureTitle}>Admin workflow</Text>
                 <Text style={styles.featureText}>
                   Search, filter and review claims, drivers, vehicles and policies.
                 </Text>
               </View>
-              <View style={styles.featureCard}>
+              <View style={[styles.featureCard, isMobile && styles.featureCardMobile]}>
                 <Text style={styles.featureTitle}>Deployable web</Text>
                 <Text style={styles.featureText}>
                   Static web export supported; local persistence keeps demo data.
@@ -143,7 +145,7 @@ export default function WebLandingScreen() {
             </View>
           </View>
 
-          <View style={styles.footer}>
+          <View style={[styles.footer, isMobile && styles.footerMobile]}>
             <Text style={styles.footerText}>
               MotorIQ Prototype • Driver app + Admin console • Local mock data
             </Text>
@@ -159,8 +161,14 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F8FAFC',
   },
+  rootMobile: {
+    padding: 0,
+  },
   page: {
     paddingBottom: 50,
+  },
+  pageMobile: {
+    paddingBottom: 20,
   },
   navbar: {
     height: 64,
@@ -171,6 +179,107 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
     borderBottomColor: '#E5E7EB',
+  },
+  navbarMobile: {
+    flexDirection: 'column',
+    height: 'auto',
+    paddingHorizontal: 8,
+    paddingVertical: 8,
+    rowGap: 8,
+  },
+  container: {
+    maxWidth: 1200,
+    alignSelf: 'center',
+    width: '100%',
+    paddingHorizontal: 24,
+  },
+  containerMobile: {
+    paddingHorizontal: 4,
+    width: '100%',
+  },
+  heroRow: {
+    flexDirection: 'row',
+    columnGap: 32,
+    marginTop: 32,
+    marginBottom: 32,
+    width: '100%',
+  },
+  heroRowMobile: {
+    flexDirection: 'column',
+    rowGap: 24,
+    marginTop: 12,
+    marginBottom: 12,
+    width: '100%',
+  },
+  heroLeft: {
+    flex: 1.2,
+    justifyContent: 'center',
+    minWidth: 0,
+  },
+  heroLeftMobile: {
+    width: '100%',
+    alignItems: 'flex-start',
+    minWidth: 0,
+  },
+  heroRight: {
+    flex: 1,
+    alignItems: 'flex-end',
+    minWidth: 0,
+  },
+  heroRightMobile: {
+    width: '100%',
+    alignItems: 'flex-start',
+    marginTop: 16,
+    minWidth: 0,
+  },
+  section: {
+    marginTop: 40,
+    marginBottom: 24,
+  },
+  sectionMobile: {
+    marginTop: 20,
+    marginBottom: 12,
+  },
+  featureGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    columnGap: 16,
+    rowGap: 16,
+    marginTop: 20,
+    width: '100%',
+  },
+  featureGridMobile: {
+    flexDirection: 'column',
+    rowGap: 12,
+    columnGap: 0,
+    width: '100%',
+  },
+  featureCard: {
+    flex: 1,
+    minWidth: 220,
+    maxWidth: 260,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 18,
+    elevation: 2,
+    width: '100%',
+    marginBottom: 8,
+  },
+  featureCardMobile: {
+    minWidth: '100%',
+    maxWidth: '100%',
+    padding: 12,
+    width: '100%',
+    marginBottom: 8,
+  },
+  footer: {
+    marginTop: 40,
+    alignItems: 'center',
+    paddingBottom: 24,
+  },
+  footerMobile: {
+    marginTop: 20,
+    paddingBottom: 12,
   },
   brandRow: {
     flexDirection: 'row',
